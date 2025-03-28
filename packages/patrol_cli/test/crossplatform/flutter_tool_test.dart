@@ -111,8 +111,11 @@ void main() {
           // Verify the uninstall function was called
           expect(uninstallCalled, isTrue);
 
-          // The future should complete
-          await future;
+          // The future should complete with an error due to exit
+          expect(
+            () => future,
+            throwsA(isA<Exception>()),
+          );
         },
       );
     },
