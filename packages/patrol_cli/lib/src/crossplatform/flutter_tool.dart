@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io' as io;
+import 'dart:io' show exit;
 
 import 'package:dispose_scope/dispose_scope.dart';
 import 'package:meta/meta.dart';
@@ -116,6 +117,14 @@ class FlutterTool {
       )
         ..disposedBy(scope);
 
+      final completer = Completer<void>();
+      scope.addDispose(() async {
+        if (!completer.isCompleted) {
+          _logger.detail('Killed before attached to the app');
+          completer.complete();
+        }
+      });
+      
       _stdin.listen((event) {
         final char = String.fromCharCode(event.first);
         if (char == 'r' || char == 'R') {
@@ -127,15 +136,16 @@ class FlutterTool {
           _logger.success('Hot Restart for entrypoint ${basename(target)}...');
           process.stdin.add('R'.codeUnits);
         }
-      }).disposedBy(scope);
-
-      final completer = Completer<void>();
-      scope.addDispose(() async {
-        if (!completer.isCompleted) {
-          _logger.detail('Killed before attached to the app');
-          completer.complete();
+        else if (char == 'q' || char == 'Q') {
+          _logger.success('Quitting process...');
+          process.kill();
+          if(!completer.isCompleted) {
+            completer.complete();
+          }
+          
+          exit(0);
         }
-      });
+      }).disposedBy(scope);
 
       _logger.detail('Hot Restart: waiting for attach to the app...');
       process.listenStdOut((line) {
@@ -214,6 +224,7 @@ class FlutterTool {
         }
         if (line.startsWith('Showing ') && line.endsWith('logs:')) {
           _logger.success('Hot Restart: logs connected');
+          _logger.success('Press "q" to quit at any time');
           _logsActive = true;
 
           if (!_hotRestartActive) {
