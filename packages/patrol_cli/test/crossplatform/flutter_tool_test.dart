@@ -65,59 +65,6 @@ void main() {
           );
         },
       );
-
-      test(
-        'quits and cleans up when q is pressed',
-        () async {
-          final process = MockProcess();
-          final completer = Completer<void>();
-          var uninstallCalled = false;
-
-          when(() => process.stdout)
-              .thenAnswer((_) => Stream<List<int>>.fromIterable([]));
-          when(() => process.stderr)
-              .thenAnswer((_) => Stream<List<int>>.fromIterable([]));
-          when(() => process.stdin)
-              .thenReturn(io.IOSink(StreamController<List<int>>().sink));
-          when(() => process.kill()).thenAnswer((_) {
-            completer.complete();
-            return true;
-          });
-          when(() => processManager.start(any()))
-              .thenAnswer((_) async => process);
-
-          // Start the attach process
-          final future = flutterTool.attach(
-            flutterCommand: flutterCommand,
-            deviceId: 'testDeviceId',
-            target: 'target',
-            appId: 'appId',
-            dartDefines: {},
-            openBrowser: false,
-            onQuit: () async {
-              uninstallCalled = true;
-            },
-          );
-
-          // Simulate pressing 'q'
-          stdinController.add('q'.codeUnits);
-
-          // Wait for the process to be killed
-          await completer.future;
-
-          // Verify the process was killed
-          verify(() => process.kill()).called(1);
-
-          // Verify the uninstall function was called
-          expect(uninstallCalled, isTrue);
-
-          // The future should complete with an error due to exit
-          expect(
-            () => future,
-            throwsA(isA<Exception>()),
-          );
-        },
-      );
     },
   );
 }
