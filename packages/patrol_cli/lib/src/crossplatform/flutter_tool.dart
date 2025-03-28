@@ -152,8 +152,8 @@ class FlutterTool {
           if (onQuit != null) {
             try {
               await onQuit();
-            } catch (e) {
-              _logger.err('Failed to clean up app: $e');
+            } catch (err) {
+              _logger.err('Failed to clean up app: $err');
             }
           }
 
@@ -237,8 +237,8 @@ class FlutterTool {
           observationUrlCompleter?.complete(url);
         }
         if (line.startsWith('Showing ') && line.endsWith('logs:')) {
-          _logger.success('Hot Restart: logs connected');
-          _logger.success('Press "q" to quit at any time');
+          _logger..success('Hot Restart: logs connected')
+          ..info('Press "q" to quit at any time');
           _logsActive = true;
 
           if (!_hotRestartActive) {

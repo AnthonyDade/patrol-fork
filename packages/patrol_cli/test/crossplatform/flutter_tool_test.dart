@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io' as io;
 
 import 'package:dispose_scope/dispose_scope.dart';
 import 'package:mocktail/mocktail.dart';
