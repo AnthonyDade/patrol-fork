@@ -18,6 +18,7 @@ class FlutterTool {
     required Platform platform,
     required DisposeScope parentDisposeScope,
     required Logger logger,
+    this.onQuit,
   })  : _stdin = stdin,
         _processManager = processManager,
         _platform = platform,
@@ -31,6 +32,7 @@ class FlutterTool {
   final Platform _platform;
   final DisposeScope _disposeScope;
   final Logger _logger;
+  final Future<void> Function()? onQuit;
 
   bool _hotRestartActive = false;
   bool _logsActive = false;
@@ -44,6 +46,7 @@ class FlutterTool {
     required Map<String, String> dartDefines,
     required bool openDevtools,
     bool attachUsingUrl = false,
+    Future<void> Function()? onQuit,
   }) async {
     if (io.stdin.hasTerminal) {
       _enableInteractiveMode();
@@ -65,6 +68,7 @@ class FlutterTool {
         debugUrl: url,
         dartDefines: dartDefines,
         openBrowser: openDevtools,
+        onQuit: onQuit,
       );
     } else {
       await Future.wait<void>([
@@ -76,6 +80,7 @@ class FlutterTool {
           appId: appId,
           dartDefines: dartDefines,
           openBrowser: openDevtools,
+          onQuit: onQuit,
         ),
       ]);
     }
@@ -96,6 +101,7 @@ class FlutterTool {
     required String? appId,
     required Map<String, String> dartDefines,
     required bool openBrowser,
+    Future<void> Function()? onQuit,
   }) async {
     await _disposeScope.run((scope) async {
       final process = await _processManager.start(
@@ -124,8 +130,8 @@ class FlutterTool {
           completer.complete();
         }
       });
-      
-      _stdin.listen((event) {
+
+      _stdin.listen((event) async {
         final char = String.fromCharCode(event.first);
         if (char == 'r' || char == 'R') {
           if (!_hotRestartActive) {
@@ -135,14 +141,22 @@ class FlutterTool {
 
           _logger.success('Hot Restart for entrypoint ${basename(target)}...');
           process.stdin.add('R'.codeUnits);
-        }
-        else if (char == 'q' || char == 'Q') {
+        } else if (char == 'q' || char == 'Q') {
           _logger.success('Quitting process...');
           process.kill();
-          if(!completer.isCompleted) {
+          if (!completer.isCompleted) {
             completer.complete();
           }
-          
+
+          // Call the uninstall function if provided
+          if (onQuit != null) {
+            try {
+              await onQuit();
+            } catch (e) {
+              _logger.err('Failed to clean up app: $e');
+            }
+          }
+
           exit(0);
         }
       }).disposedBy(scope);
