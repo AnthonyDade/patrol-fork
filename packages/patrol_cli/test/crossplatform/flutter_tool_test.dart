@@ -87,21 +87,17 @@ void main() {
               .thenAnswer((_) async => process);
 
           // Start the attach process
-          try {
-            await flutterTool.attach(
-              flutterCommand: flutterCommand,
-              deviceId: 'testDeviceId',
-              target: 'target',
-              appId: 'appId',
-              dartDefines: {},
-              openBrowser: false,
-              onQuit: () async {
-                uninstallCalled = true;
-              },
-            );
-          } catch (e) {
-            // Ignore the exception from exit
-          }
+          final future = flutterTool.attach(
+            flutterCommand: flutterCommand,
+            deviceId: 'testDeviceId',
+            target: 'target',
+            appId: 'appId',
+            dartDefines: {},
+            openBrowser: false,
+            onQuit: () async {
+              uninstallCalled = true;
+            },
+          );
 
           // Simulate pressing 'q'
           stdinController.add('q'.codeUnits);
@@ -114,6 +110,12 @@ void main() {
 
           // Verify the uninstall function was called
           expect(uninstallCalled, isTrue);
+
+          // The future should complete with an error due to exit
+          expect(
+            () => future,
+            throwsA(isA<Exception>()),
+          );
         },
       );
     },
